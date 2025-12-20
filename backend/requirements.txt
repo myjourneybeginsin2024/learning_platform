@@ -5,6 +5,8 @@ psycopg2-binary
 alembic
 python-dotenv
 pydantic
+pydantic-settings
 redis
 passlib[bcrypt]
+bcrypt
 python-jose[cryptography]

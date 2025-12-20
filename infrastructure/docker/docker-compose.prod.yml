@@ -26,8 +26,8 @@ services:
     container_name: postgres_prod
     environment:
       POSTGRES_DB: learning_platform
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_USER: learning_user
+      POSTGRES_PASSWORD: MulaiBeraksi2024
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
