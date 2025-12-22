@@ -1,0 +1,9 @@
+from fastapi import FastAPI
+from app.api import auth, health, users, admin
+
+app = FastAPI()
+app.include_router(auth.router, prefix="/api")      # → /api/auth/login
+
+app.include_router(health.router, prefix="/api")    # → /api/health
+app.include_router(users.router, prefix="/api")     # → /api/users/me
+app.include_router(admin.router, prefix="/api")     # → /api/admin/stats

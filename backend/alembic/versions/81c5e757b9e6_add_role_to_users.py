@@ -12,7 +12,7 @@ import sqlalchemy as sa
 # Get it via: docker exec postgres_prod psql -U learning_user -d learning_platform -c "SELECT * FROM alembic_version;"
 
 revision = '81c5e757b9e6'
-down_revision = 'ef8c8c8f5ebf'
+down_revision = None
 branch_labels = None
 depends_on = None
 

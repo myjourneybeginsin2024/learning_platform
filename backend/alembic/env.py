@@ -5,7 +5,11 @@ from sqlalchemy import pool
 
 from alembic import context
 from app.db.base import Base
-from app.models import user
+# Import ALL models so Alembic can detect them
+import app.models.user
+import app.models.lesson
+import app.models.feed_item
+import app.models.user_progress
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
