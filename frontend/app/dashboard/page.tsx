@@ -3,21 +3,30 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function Dashboard() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isAuthenticated) router.push("/login");
-  }, [isAuthenticated]);
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
 
-  if (!isAuthenticated) return null;
-
+  // Wrap the dashboard content with ProtectedRoute to ensure authentication
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Dashboard</h1>
-      <p>Logged in as: {user?.email}</p> {/* ✅ NOW SHOWS EMAIL */}
-    </div>
+    <ProtectedRoute requireAuth={true}>
+      <div style={{ padding: "2rem" }}>
+        <h1>Dashboard</h1>
+        <p>Logged in as: {user?.email}</p>
+        <button 
+          onClick={handleLogout}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Logout
+        </button>
+      </div>
+    </ProtectedRoute>
   );
 }

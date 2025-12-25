@@ -1,0 +1,68 @@
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: backend_local
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../.envs/local/.env
+    volumes:
+      - ../../backend:/app
+      - ../../backend/app:/app/app
+      # Hot reload for Python
+      - /app/.venv
+    # depends_on:
+    #   - db  # Local PostgreSQL is used instead
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENV=local
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: frontend_local
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../../.envs/local/.env
+    volumes:
+      - ../../frontend:/app
+      - ../../frontend/app:/app/app
+      # Hot reload for Node.js
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+
+  # Local PostgreSQL is used instead of Docker container
+  # db:
+  #   image: postgres:16
+  #   container_name: postgres_local
+  #   environment:
+  #     POSTGRES_DB: learning_platform
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   volumes:
+  #     - ../../data/postgres:/var/lib/postgresql/data
+  #     - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+  #     - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: redis_local
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+
+volumes:
+  postgres_data:
+  redis_data:

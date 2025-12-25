@@ -10,3 +10,6 @@ redis
 passlib[bcrypt]
 bcrypt
 python-jose[cryptography]
+authlib
+httpx
+itsdangerous
