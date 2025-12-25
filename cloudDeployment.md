@@ -1996,7 +1996,10 @@ When working with sensitive information like OAuth credentials, API keys, and da
      "git rm --cached --ignore-unmatch .envs/local/.env backend/.env" \
      --prune-empty --tag-name-filter cat -- --all
    
-   # 6. Push the rewritten history
+   # 6. If you get a 'stale info' or 'rejected' error, first pull the remote changes
+   git pull origin main --allow-unrelated-histories
+   
+   # 7. Then push the rewritten history
    git push --force-with-lease origin main
    ```
 
