@@ -11,12 +11,13 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
       await registerUser(email, password);
-      router.push("/dashboard");
+      // Use window.location.href to ensure a clean state reload into dashboard
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message);
     }
@@ -61,13 +62,13 @@ export default function RegisterPage() {
           </form>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <a 
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/auth/google`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || "process.env.NEXT_PUBLIC_API_URL"}/auth/google`}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               Google
             </a>
             <a 
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/auth/microsoft`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || "process.env.NEXT_PUBLIC_API_URL"}/auth/microsoft`}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               Microsoft

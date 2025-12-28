@@ -7,8 +7,8 @@ python-dotenv
 pydantic
 pydantic-settings
 redis
-passlib[bcrypt]
-bcrypt
+passlib==1.7.4
+bcrypt==3.2.2
 python-jose[cryptography]
 authlib
 httpx

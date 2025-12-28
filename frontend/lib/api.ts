@@ -1,9 +1,12 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://noleij.com';
 
 export async function apiFetch(
   url: string,
   options: RequestInit = {}
 ) {
+  // Build full URL
+  const fullUrl = new URL(url, API_BASE).toString(); // ← This ensures absolute URL
+
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -14,7 +17,7 @@ export async function apiFetch(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${url}`, {
+  const res = await fetch(fullUrl, {
     ...options,
     headers,
   });

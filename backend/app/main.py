@@ -1,27 +1,28 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from app.api import auth, health, users, admin
-from app.api import feed
+from app.core.config import settings
 
 app = FastAPI()
 
-# Add Session middleware
 app.add_middleware(
     SessionMiddleware,
-    secret_key="ciLagOHVWlvfQpre2dj5UmxByY6uqz7F",  # Use your JWT secret or a separate session secret
+    secret_key="ciLagOHVWlvfQpre2dj5UmxByY6uqz7F",
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import routers AFTER app is created
+from app.api import auth, health, users, admin, feed
+
 app.include_router(health.router)
-app.include_router(auth.router)
+app.include_router(auth.router, prefix="/auth")
 app.include_router(users.router)
 app.include_router(feed.router)
 app.include_router(admin.router)

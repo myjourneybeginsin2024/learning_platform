@@ -22,6 +22,8 @@ export default function LoginPage() {
     }
   }
 
+  // ✅ Get API base from env (must be https://noleij.com)
+  const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "https://noleij.com").trim();
   return (
     <ProtectedRoute requireAuth={false}>
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -60,14 +62,15 @@ export default function LoginPage() {
             </div>
           </form>
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <a 
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/auth/google`}
+            {/* ✅ Fixed: Use /api/auth (matches backend + Nginx) */}
+            <a
+              href={`${API_BASE}/auth/google`}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               Google
             </a>
-            <a 
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/auth/microsoft`}
+            <a
+              href={`${API_BASE}/auth/microsoft`}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               Microsoft

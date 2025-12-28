@@ -1,74 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, HTTPException, Request, Depends, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel  # ← ADD THIS
-from authlib.integrations.starlette_client import OAuth
-
 from app.db.session import get_db
 from app.models.user import User
-from app.core.security import hash_password, verify_password
-from app.core.auth import create_access_token
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.core.config import settings
+from app.oauth import oauth
+from pydantic import BaseModel  # ← this is required
 
-from app.api.deps import get_current_user
-from app.models.user import User
+router = APIRouter()
 
-router = APIRouter(prefix="/auth")
-
-# OAuth setup for Google and Microsoft
-oauth = OAuth()
-
-# Google OAuth
-oauth.register(
-    name='google',
-    client_id=settings.GOOGLE_CLIENT_ID,
-    client_secret=settings.GOOGLE_CLIENT_SECRET,
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    },
-    # Add timeout settings to handle network delays
-    timeout=30.0
-)
-
-# Microsoft OAuth
-oauth.register(
-    name='microsoft',
-    client_id=settings.MICROSOFT_CLIENT_ID,
-    client_secret=settings.MICROSOFT_CLIENT_SECRET,
-    access_token_url='https://login.microsoftonline.com/common/oauth2/v2.0/token',
-    authorize_url='https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-    api_base_url='https://graph.microsoft.com/v1.0/',
-    client_kwargs={
-        'scope': 'openid email profile'
-    },
-    # Add timeout settings to handle network delays
-    timeout=30.0
-)
-
-# ← ADD THESE MODELS
-class AuthRequest(BaseModel):
+class RegisterRequest(BaseModel):
     email: str
     password: str
 
-@router.post("/register")
-def register(request: AuthRequest, db: Session = Depends(get_db)):  # ← USE request: AuthRequest
-    existing = db.query(User).filter(User.email == request.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    user = User(
-        email=request.email,
-        hashed_password=hash_password(request.password)
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return {"id": user.id, "email": user.email}
-
 @router.post("/login")
-def login(request: AuthRequest, db: Session = Depends(get_db)):  # ← USE request: AuthRequest
-    user = db.query(User).filter(User.email == request.email).first()
-    if not user or not verify_password(request.password, user.hashed_password):
+async def login(user_data: dict, db: Session = Depends(get_db)):
+    email = user_data.get("email")
+    password = user_data.get("password")
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email and password required"
+        )
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
@@ -76,10 +34,49 @@ def login(request: AuthRequest, db: Session = Depends(get_db)):  # ← USE reque
     token = create_access_token(user.id, user.role)
     return {"access_token": token, "token_type": "bearer"}
 
+@router.post("/register")
+async def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    email = request.email
+    password = request.password
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email and password required"
+        )
+
+    # Validate password length
+    if len(password.encode('utf-8')) > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password too long (max 72 bytes)"
+        )
+
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    # Create new user — note: your User model does NOT have 'name'
+    hashed_password = get_password_hash(password)
+    user = User(
+        email=email,
+        hashed_password=hashed_password
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    access_token = create_access_token(user.id, user.role)
+    return {"access_token": access_token, "token_type": "bearer"}
+
 # Google OAuth endpoints
 @router.get("/google")
 async def google_login(request: Request):
-    redirect_uri = f"{request.base_url}auth/complete/google-oauth2/"
+    redirect_uri = f"{settings.FRONTEND_URL}/auth/complete/google-oauth2/"
     try:
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
@@ -87,42 +84,39 @@ async def google_login(request: Request):
 
 
 @router.get("/complete/google-oauth2/")
-async def google_callback(request: Request, db: Session = Depends(get_db)):  # Google OAuth expects this specific endpoint
-    token = await oauth.google.authorize_access_token(request)
-    user_info = token.get('userinfo')
-    
-    if user_info:
-        email = user_info.get('email')
-        name = user_info.get('name', '')
-        
-        # Check if user exists, create if not
-        user = db.query(User).filter(User.email == email).first()
-        if not user:
-            user = User(
-                email=email,
-                hashed_password='',  # OAuth users don't have passwords
-                role='user'
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        
-        # Create JWT token
-        access_token = create_access_token(user.id, user.role)
-        
-        # Redirect to frontend with token (for frontend to handle)
-        from starlette.responses import RedirectResponse
-        frontend_url = settings.FRONTEND_URL  # Use the frontend URL from settings
-        redirect_url = f"{frontend_url}/auth/callback?access_token={access_token}&token_type=bearer"
-        return RedirectResponse(url=redirect_url)
-    
-    raise HTTPException(status_code=400, detail="Failed to get user info from Google")
+async def google_callback(request: Request, db: Session = Depends(get_db)):
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        user_info = token.get('userinfo')
+        if not user_info:
+            user_info = await oauth.google.parse_id_token(request, token)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch user info: {str(e)}")
+
+    email = user_info.get('email')
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account must have an email")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(
+            email=email,
+            google_id=user_info.get('sub'),
+            avatar_url=user_info.get('picture')
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token(user.id, user.role)
+    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}&token_type=bearer"
+    return RedirectResponse(url=redirect_url)
 
 
 # Microsoft OAuth endpoints
 @router.get("/microsoft")
 async def microsoft_login(request: Request):
-    redirect_uri = f"{request.base_url}auth/complete/microsoft-oauth2/"
+    redirect_uri = f"{settings.FRONTEND_URL}/auth/complete/microsoft-oauth2/"
     try:
         return await oauth.microsoft.authorize_redirect(request, redirect_uri)
     except Exception as e:
@@ -130,48 +124,32 @@ async def microsoft_login(request: Request):
 
 
 @router.get("/complete/microsoft-oauth2/")
-async def microsoft_callback(request: Request, db: Session = Depends(get_db)):  # Microsoft OAuth expects this specific endpoint
-    token = await oauth.microsoft.authorize_access_token(request)
-    user_info = token.get('userinfo')
-    
-    if user_info:
-        email = user_info.get('email') or user_info.get('userPrincipalName')
-        name = user_info.get('name', '')
-        
-        # Check if user exists, create if not
-        user = db.query(User).filter(User.email == email).first()
-        if not user:
-            user = User(
-                email=email,
-                hashed_password='',  # OAuth users don't have passwords
-                role='user'
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        
-        # Create JWT token
-        access_token = create_access_token(user.id, user.role)
-        
-        # Redirect to frontend with token (for frontend to handle)
-        from starlette.responses import RedirectResponse
-        frontend_url = settings.FRONTEND_URL  # Use the frontend URL from settings
-        redirect_url = f"{frontend_url}/auth/callback?access_token={access_token}&token_type=bearer"
-        return RedirectResponse(url=redirect_url)
-    
-    raise HTTPException(status_code=400, detail="Failed to get user info from Microsoft")
+async def microsoft_callback(request: Request, db: Session = Depends(get_db)):
+    try:
+        token = await oauth.microsoft.authorize_access_token(request)
+        user_info = await oauth.microsoft.parse_id_token(request, token)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch user info: {str(e)}")
+
+    email = user_info.get('email') or user_info.get('preferred_username')
+    if not email:
+        raise HTTPException(status_code=400, detail="Microsoft account must have an email")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(
+            email=email,
+            microsoft_id=user_info.get('sub')
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token(user.id, user.role)
+    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}&token_type=bearer"
+    return RedirectResponse(url=redirect_url)
 
 
 @router.post("/logout")
 def logout():
-    # Client-side token removal is sufficient for logout in JWT
-    # This endpoint exists for API consistency
     return {"message": "Logged out successfully"}
-
-
-@router.get("/me")
-def read_me(current_user: User = Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-    }

@@ -1,18 +1,26 @@
-import bcrypt
+# Now import all other modules
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+import logging
+
+from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
 
-import logging
 logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+# Configure password hashing context
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+)
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -23,13 +31,11 @@ def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    print(f"DEBUG: JWT_SECRET_KEY = {settings.JWT_SECRET_KEY}")
-    logger.info(f"VALIDATING token with secret: {settings.JWT_SECRET_KEY[:10]}...")    
     try:
         payload = jwt.decode(
             token,
             settings.JWT_SECRET_KEY,
-            algorithms=["HS256"],           
+            algorithms=["HS256"],
         )
         user_id: str | None = payload.get("sub")
         if user_id is None:
@@ -40,23 +46,33 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
-    return user  # ← MUST return user
+    return user
 
+def get_password_hash(password: str) -> str:
+    # bcrypt only uses first 72 bytes — truncate to avoid ValueError
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password = password_bytes[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(password)
 
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
 
+def create_access_token(user_id: int, role: str = "user", expires_delta: timedelta = None):
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=60)
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode('utf-8'),
-        hashed_password.encode('utf-8')
-    )
+    to_encode = {
+        "sub": str(user_id),
+        "role": role,
+        "exp": expire,
+        "iat": datetime.utcnow()
+    }
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
 
-def create_access_token( dict, expires_delta: timedelta = None):
-    logger.info(f"SIGNING token with secret: {settings.JWT_SECRET_KEY[:10]}...")  # ← Log first 10 chars
 
 def require_role(required_role: str):
     def checker(user: User = Depends(get_current_user)):
