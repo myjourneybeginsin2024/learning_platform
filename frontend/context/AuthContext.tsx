@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  loginUser: (email: string, password: string) => Promise<void>;
+  loginUser: (email: string, password: string) => Promise<User>;
   registerUser: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
@@ -23,14 +23,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const initializeAuth = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('auth_token') || urlParams.get('access_token');
-
-    if (tokenFromUrl) {
-      localStorage.setItem('token', tokenFromUrl);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -48,20 +40,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
   }, []);
 
-  async function loginUser(email: string, password: string) {
+  async function loginUser(email: string, password: string): Promise<User> {
+    // 1. Get combined data from backend
     const data = await apiLogin(email, password);
+    
+    // 2. Persist token
     localStorage.setItem("token", data.access_token);
-    const userData = await getCurrentUser(data.access_token);
-    setUser({ id: userData.id, email: userData.email, role: userData.role });
+
+    // 3. Set user state immediately from response
+    const userProfile: User = data.user;
+    setUser(userProfile);
+
+    // 4. Return to LoginPage for immediate redirection
+    return userProfile;
   }
 
   async function registerUser(email: string, password: string) {
     try {
       await apiRegister(email, password);
-      // Automatically log the user in after registration
       await loginUser(email, password);
     } catch (error: any) {
-      throw new Error(error.message || "Registration/Login failed");
+      throw new Error(error.message || "Registration failed");
     }
   }
 

@@ -1,155 +1,167 @@
-from fastapi import APIRouter, HTTPException, Request, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from app.db.session import get_db
 from app.models.user import User
-from app.core.security import create_access_token, get_password_hash, verify_password
+from app.core.security import create_access_token, verify_password, get_password_hash
 from app.core.config import settings
-from app.oauth import oauth
-from pydantic import BaseModel  # ← this is required
-
+from authlib.integrations.starlette_client import OAuth
+import os
+import httpx 
+import logging
+# Set insecure transport for Docker/Proxy env
+os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1'
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 router = APIRouter()
-
-class RegisterRequest(BaseModel):
+# --- OAuth Setup ---
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=settings.GOOGLE_CLIENT_ID,
+    client_secret=settings.GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
+oauth.register(
+    name='microsoft',
+    client_id=settings.MICROSOFT_CLIENT_ID,
+    client_secret=settings.MICROSOFT_CLIENT_SECRET,
+    server_metadata_url='https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
+    client_kwargs={'scope': 'User.Read'}
+)
+# -------------------
+class AuthRequest(BaseModel):
     email: str
     password: str
-
+class UserCreate(BaseModel):
+    email: str
+    password: str
 @router.post("/login")
-async def login(user_data: dict, db: Session = Depends(get_db)):
-    email = user_data.get("email")
-    password = user_data.get("password")
-
-    if not email or not password:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Email and password required"
-        )
-
-    user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
-    token = create_access_token(user.id, user.role)
-    return {"access_token": token, "token_type": "bearer"}
-
+def login(request: AuthRequest, db: Session = Depends(get_db)):
+    normalized_email = request.email.lower().strip()
+    user = db.query(User).filter(User.email == normalized_email).first()
+    if not user or not verify_password(request.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    access_token = create_access_token(user_id=user.id, role=user.role)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role
+        }
+    }
 @router.post("/register")
-async def register(request: RegisterRequest, db: Session = Depends(get_db)):
-    email = request.email
-    password = request.password
-
-    if not email or not password:
+def register(user_in: UserCreate, db: Session = Depends(get_db)):
+    normalized_email = user_in.email.lower().strip()
+    
+    if db.query(User).filter(User.email == normalized_email).first():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Email and password required"
+            status_code=400,
+            detail="The user with this email already exists."
         )
-
-    # Validate password length
-    if len(password.encode('utf-8')) > 72:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password too long (max 72 bytes)"
-        )
-
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-
-    # Create new user — note: your User model does NOT have 'name'
-    hashed_password = get_password_hash(password)
+    
     user = User(
-        email=email,
-        hashed_password=hashed_password
+        email=normalized_email,
+        hashed_password=get_password_hash(user_in.password),
+        role="user", 
+        is_active=True
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-
-    access_token = create_access_token(user.id, user.role)
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# Google OAuth endpoints
+    access_token = create_access_token(user_id=user.id, role=user.role)
+    return {
+        "access_token": access_token,
+        "msg": "Registration successful", 
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role
+        }
+    }
+# --- OAUTH ROUTES (MANUAL IMPLEMENTATION) ---
 @router.get("/google")
 async def google_login(request: Request):
-    redirect_uri = f"{settings.FRONTEND_URL}/auth/complete/google-oauth2/"
     try:
+        redirect_uri = "https://noleij.com/auth/complete/google-oauth2/"
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Google OAuth error: {str(e)}")
-
-
+         logger.error(f"Google Login Start Error: {str(e)}")
+         raise HTTPException(status_code=500, detail="Could not start Google Login")
 @router.get("/complete/google-oauth2/")
-async def google_callback(request: Request, db: Session = Depends(get_db)):
+async def google_auth(request: Request, db: Session = Depends(get_db)):
     try:
-        token = await oauth.google.authorize_access_token(request)
-        user_info = token.get('userinfo')
-        if not user_info:
-            user_info = await oauth.google.parse_id_token(request, token)
+        # MANUAL TOKEN FETCH to avoid Authlib session conflicts
+        redirect_uri = "https://noleij.com/auth/complete/google-oauth2/"
+        
+        # 1. Manually exchange code for token using fetch_access_token
+        # This bypasses authorize_access_token which relies on session verification that is failing
+        token = await oauth.google.fetch_access_token(
+            redirect_uri=redirect_uri,
+            grant_type='authorization_code',
+            code=request.query_params.get('code')
+        )
+        
+        # 2. Get User Info
+        if 'userinfo' in token:
+            user_info = token['userinfo']
+        else:
+            user_info = await oauth.google.userinfo(token=token)
+            
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch user info: {str(e)}")
-
+        # Note: Changed Error Log prefix for verification
+        logger.error(f"OAuth Manual Callback Error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"OAuth Manual Error: {str(e)}")
     email = user_info.get('email')
     if not email:
-        raise HTTPException(status_code=400, detail="Google account must have an email")
-
+        raise HTTPException(status_code=400, detail="No email returned from Google")
+    
     user = db.query(User).filter(User.email == email).first()
     if not user:
         user = User(
             email=email,
-            google_id=user_info.get('sub'),
-            avatar_url=user_info.get('picture')
+            hashed_password=get_password_hash("oauth_social_login"),
+            role="user", 
+            is_active=True
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-
-    access_token = create_access_token(user.id, user.role)
-    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}&token_type=bearer"
-    return RedirectResponse(url=redirect_url)
-
-
-# Microsoft OAuth endpoints
+    
+    access_token = create_access_token(user_id=user.id, role=user.role)
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?token={access_token}")
 @router.get("/microsoft")
 async def microsoft_login(request: Request):
-    redirect_uri = f"{settings.FRONTEND_URL}/auth/complete/microsoft-oauth2/"
-    try:
-        return await oauth.microsoft.authorize_redirect(request, redirect_uri)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Microsoft OAuth error: {str(e)}")
-
-
-@router.get("/complete/microsoft-oauth2/")
-async def microsoft_callback(request: Request, db: Session = Depends(get_db)):
+    redirect_uri = request.url_for('microsoft_auth')
+    return await oauth.microsoft.authorize_redirect(request, redirect_uri)
+@router.get("/microsoft/callback")
+async def microsoft_auth(request: Request, db: Session = Depends(get_db)):
     try:
         token = await oauth.microsoft.authorize_access_token(request)
-        user_info = await oauth.microsoft.parse_id_token(request, token)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch user info: {str(e)}")
-
-    email = user_info.get('email') or user_info.get('preferred_username')
+        logger.error(f"Microsoft OAuth Callback Error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"OAuth Error: {str(e)}")
+    user_info = await oauth.microsoft.userinfo(token=token)
+    email = user_info.get('mail') or user_info.get('userPrincipalName')
+    
     if not email:
-        raise HTTPException(status_code=400, detail="Microsoft account must have an email")
-
+         raise HTTPException(status_code=400, detail="Could not retrieve email.")
     user = db.query(User).filter(User.email == email).first()
     if not user:
         user = User(
             email=email,
-            microsoft_id=user_info.get('sub')
+            hashed_password=get_password_hash("oauth_social_login"),
+            role="user",
+            is_active=True
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-
-    access_token = create_access_token(user.id, user.role)
-    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}&token_type=bearer"
-    return RedirectResponse(url=redirect_url)
-
-
-@router.post("/logout")
-def logout():
-    return {"message": "Logged out successfully"}
+    
+    access_token = create_access_token(user_id=user.id, role=user.role)
+    
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?token={access_token}")

@@ -1,37 +1,18 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-from sqlalchemy.orm import Session
-
-from app.core.config import settings
-from app.db.session import get_db
+from fastapi import Depends, HTTPException
+from app.core.security import get_current_user as security_get_current_user
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
-
-    try:
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM],
-        )
-        user_id: str | None = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        raise credentials_exception
-
+# This is the standard way to provide the user to routes
+def get_current_user(user: User = Depends(security_get_current_user)):
     return user
+
+# This helper allows you to check for multiple roles at once
+def require_role(allowed_roles: list):
+    def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Role {current_user.role} is not authorized"
+            )
+        return current_user
+    return role_checker
