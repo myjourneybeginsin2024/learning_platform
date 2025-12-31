@@ -18,6 +18,8 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY .env ./
+COPY create_cloud_users.py ./
+COPY verify_login.py ./
 
 # Expose port
 EXPOSE 8000

@@ -231,7 +231,12 @@ export function Navbar() {
                 isDarkMode={isDarkMode}
                 toggleDarkMode={toggleDarkMode}
             />
-            <UserDrawer isOpen={isUserDrawerOpen} onClose={() => setIsUserDrawerOpen(false)} />
+            <UserDrawer
+                isOpen={isUserDrawerOpen}
+                onClose={() => setIsUserDrawerOpen(false)}
+                isDarkMode={isDarkMode}
+                toggleDarkMode={toggleDarkMode}
+            />
 
             {isAuthModalOpen && (
                 <AuthModal
