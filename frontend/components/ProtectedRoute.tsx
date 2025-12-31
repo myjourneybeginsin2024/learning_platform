@@ -13,11 +13,19 @@ export default function ProtectedRoute({ children, requireAuth = true }: { child
     if (isLoading) return;
 
     if (requireAuth && !isAuthenticated) {
-      router.push('/login');
+      router.push('/');
     } else if (!requireAuth && isAuthenticated) {
       // Don't redirect if we are already where we want to be
       if (['/login', '/register'].includes(pathname)) {
-        router.push('/dashboard');
+        // [MODIFIED] Use Role-Based Redirection instead of hardcoded /dashboard
+        // Note: We need 'user' from useAuth which might not be destructured yet
+        // Since we can't easily access user here without changing destructuring on line 8,
+        // we should assume the Layout or Login page handles the specific redirect.
+        // BUT, since this component FORCES redirect, we must update it.
+        const target = window.localStorage.getItem('user_role') === 'super admin' ? '/superadmin'
+          : window.localStorage.getItem('user_role') === 'admin' ? '/admin'
+            : '/user';
+        router.push(target);
       }
     }
   }, [isAuthenticated, isLoading, requireAuth, router, pathname]);

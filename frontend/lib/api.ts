@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://noleij.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+console.log("API_BASE Configured:", API_BASE);
 
 export async function apiFetch(
   url: string,

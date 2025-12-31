@@ -16,9 +16,11 @@ services:
     # depends_on:
     #   - db  # Local PostgreSQL is used instead
     restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       - PYTHONUNBUFFERED=1
       - ENV=local
+      - API_BASE_URL=http://localhost:8000
 
   frontend:
     build:
@@ -34,8 +36,9 @@ services:
       - ../../frontend/app:/app/app
       # Hot reload for Node.js
       - /app/node_modules
-      - /app/.next
+      - /app/.next 
     restart: unless-stopped
+    command: npm run dev
     environment:
       - NODE_ENV=development
 

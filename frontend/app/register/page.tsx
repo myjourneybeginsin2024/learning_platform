@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import Image from "next/image";
 export default function RegisterPage() {
     const { registerUser, user } = useAuth();
     const router = useRouter();
@@ -28,8 +29,17 @@ export default function RegisterPage() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
             <div className="w-full max-w-md space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+                <div className="flex flex-col items-center">
+                    <div className="relative h-12 w-40 mb-4">
+                        <Image
+                            src="/assets/logo-dark.jpg"
+                            alt="Noleij Logo"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
+                    <h2 className="text-3xl font-bold tracking-tight text-gray-900">
                         Create a new account
                     </h2>
                 </div>
@@ -67,7 +77,7 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                            className="group relative flex w-full justify-center rounded-full bg-reddit-blue px-3 py-2 text-sm font-bold text-white hover:bg-reddit-blue-hover disabled:opacity-50 transition-colors shadow-md"
                         >
                             {loading ? "Creating account..." : "Sign up"}
                         </button>
@@ -89,11 +99,11 @@ export default function RegisterPage() {
                         </div>
                     </div>
                     <div className="mt-6 grid grid-cols-2 gap-3">
-                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'https://noleij.com/api'}/auth/google`}
+                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/google`}
                             className="flex w-full items-center justify-center rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                             Google
                         </a>
-                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'https://noleij.com/api'}/auth/microsoft`}
+                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/microsoft`}
                             className="flex w-full items-center justify-center rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                             Microsoft
                         </a>

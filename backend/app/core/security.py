@@ -36,16 +36,28 @@ def get_current_user(
             token,
             settings.JWT_SECRET_KEY,
             algorithms=["HS256"],
+            options={"leeway": 60}
         )
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
+    except JWTError as e:
+        logger.error(f"JWT Error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"JWT Error: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Validated token
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
-        raise credentials_exception
+        logger.error(f"User ID {user_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"User ID {user_id} not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
 
 def get_password_hash(password: str) -> str:

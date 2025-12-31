@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     
     # Frontend URL
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://noleij.com")
+
+    # [MODIFIED FOR LOCAL DEV]
+    # Added API_BASE_URL to support dynamic OAuth redirects on localhost
+    API_BASE_URL: str = os.getenv("API_BASE_URL", "https://noleij.com")
     
     # CORS settings
     BACKEND_CORS_ORIGINS: List[str] = []

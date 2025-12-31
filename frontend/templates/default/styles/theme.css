@@ -1,0 +1,55 @@
+@layer base {
+  :root {
+    --color-reddit-primary: #1e3a8a;
+    --color-reddit-blue: #0045AC;
+    --color-reddit-blue-hover: #003584;
+
+    /* Light Mode */
+    --color-reddit-orange: #FF4500;
+    --color-reddit-bg: #FFFFFF;
+    --color-reddit-card: #FFFFFF;
+    --color-reddit-text: #1C1C1C;
+    --color-reddit-meta: #787C7E;
+    --color-reddit-border: #D1D5DB;
+    --color-reddit-input-bg: #F6F7F8;
+    
+    /* Radius */
+    --radius-pill: 9999px;
+    --radius-xl: 16px;
+    --radius-lg: 12px;
+  }
+
+  .dark {
+    --color-reddit-bg: #030303;
+    --color-reddit-card: #1A1A1B;
+    --color-reddit-text: #D7DADC;
+    --color-reddit-meta: #818384;
+    --color-reddit-border: #343536;
+    --color-reddit-input-bg: #272729;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide-default {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-hide-default:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  }
+  .scrollbar-hide-default::-webkit-scrollbar {
+    width: 8px;
+  }
+  .scrollbar-hide-default::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-hide-default::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 20px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-hide-default:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+}

@@ -87,7 +87,9 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 @router.get("/google")
 async def google_login(request: Request):
     try:
-        redirect_uri = "https://noleij.com/auth/complete/google-oauth2/"
+        # [MODIFIED FOR LOCAL DEV]
+        # Changed hardcoded URL to use dynamic settings.API_BASE_URL
+        redirect_uri = f"{settings.API_BASE_URL}/auth/complete/google-oauth2/"
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
          logger.error(f"Google Login Start Error: {str(e)}")
@@ -96,7 +98,9 @@ async def google_login(request: Request):
 async def google_auth(request: Request, db: Session = Depends(get_db)):
     try:
         # MANUAL TOKEN FETCH to avoid Authlib session conflicts
-        redirect_uri = "https://noleij.com/auth/complete/google-oauth2/"
+        # [MODIFIED FOR LOCAL DEV]
+        # Changed hardcoded URL to use dynamic settings.API_BASE_URL
+        redirect_uri = f"{settings.API_BASE_URL}/auth/complete/google-oauth2/"
         
         # 1. Manually exchange code for token using fetch_access_token
         # This bypasses authorize_access_token which relies on session verification that is failing
@@ -133,10 +137,14 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         db.refresh(user)
     
     access_token = create_access_token(user_id=user.id, role=user.role)
-    return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?token={access_token}")
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}")
 @router.get("/microsoft")
 async def microsoft_login(request: Request):
+    # [MODIFIED FOR LOCAL DEV]
+    # Using dynamic redirect_uri generation
     redirect_uri = request.url_for('microsoft_auth')
+    # Or if explicit override is needed:
+    # redirect_uri = f"{settings.API_BASE_URL}/auth/microsoft/callback"
     return await oauth.microsoft.authorize_redirect(request, redirect_uri)
 @router.get("/microsoft/callback")
 async def microsoft_auth(request: Request, db: Session = Depends(get_db)):
@@ -164,4 +172,4 @@ async def microsoft_auth(request: Request, db: Session = Depends(get_db)):
     
     access_token = create_access_token(user_id=user.id, role=user.role)
     
-    return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?token={access_token}")
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}")

@@ -12,6 +12,7 @@ type AuthContextType = {
   isLoading: boolean;
   loginUser: (email: string, password: string) => Promise<User>;
   registerUser: (email: string, password: string) => Promise<void>;
+  loginWithToken: (token: string) => Promise<User>;
   logout: () => void;
 };
 
@@ -28,10 +29,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const fetchedUser = await getCurrentUser(token);
         setUser({ id: fetchedUser.id, email: fetchedUser.email, role: fetchedUser.role });
+        localStorage.setItem('user_role', fetchedUser.role);
+        console.log("AuthContext: user initialized", fetchedUser);
       } catch (error) {
+        console.error("AuthContext: initializeAuth failed", error);
+        console.log("AuthContext: Removing token due to error. Token was:", token);
         localStorage.removeItem("token");
+        localStorage.removeItem("user_role");
         setUser(null);
       }
+    } else {
+      console.log("AuthContext: No token found in localStorage");
     }
     setInitialized(true);
   };
@@ -43,13 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function loginUser(email: string, password: string): Promise<User> {
     // 1. Get combined data from backend
     const data = await apiLogin(email, password);
-    
+
     // 2. Persist token
     localStorage.setItem("token", data.access_token);
 
     // 3. Set user state immediately from response
     const userProfile: User = data.user;
     setUser(userProfile);
+    localStorage.setItem('user_role', userProfile.role);
 
     // 4. Return to LoginPage for immediate redirection
     return userProfile;
@@ -64,10 +73,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function loginWithToken(token: string): Promise<User> {
+    console.log("AuthContext: loginWithToken called with token", token);
+    localStorage.setItem("token", token);
+    try {
+      const fetchedUser = await getCurrentUser(token);
+      console.log("AuthContext: user fetched", fetchedUser);
+      setUser({ id: fetchedUser.id, email: fetchedUser.email, role: fetchedUser.role });
+      // Ensure role is saved for ProtectedRoute
+      localStorage.setItem('user_role', fetchedUser.role);
+      return fetchedUser;
+    } catch (err) {
+      console.error("AuthContext: fetch user failed", err);
+      throw err;
+    }
+  }
+
   function logout() {
     localStorage.removeItem("token");
     setUser(null);
-    router.push('/login');
+    router.push('/');
   }
 
   return (
@@ -78,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: !initialized,
         loginUser,
         registerUser,
+        loginWithToken,
         logout,
       }}
     >
