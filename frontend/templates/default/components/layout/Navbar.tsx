@@ -74,7 +74,7 @@ export function Navbar() {
                     </button>
                     <Link href="/" className="hidden md:flex items-center gap-2 relative h-10 w-32">
                         <Image
-                            src="/assets/logo-dark.jpg"
+                            src="/assets/logo-white-bg.jpg"
                             alt="Noleij Logo"
                             fill
                             className="object-contain dark:hidden"
@@ -225,7 +225,12 @@ export function Navbar() {
                 </div>
             </nav>
 
-            <MobileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+            <MobileDrawer
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
+                isDarkMode={isDarkMode}
+                toggleDarkMode={toggleDarkMode}
+            />
             <UserDrawer isOpen={isUserDrawerOpen} onClose={() => setIsUserDrawerOpen(false)} />
 
             {isAuthModalOpen && (

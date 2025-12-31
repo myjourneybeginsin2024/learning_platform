@@ -1,6 +1,4 @@
-'use client';
-
-import { X, Home, TrendingUp, Compass, MessageCircle, Gamepad2 } from 'lucide-react';
+import { X, Home, TrendingUp, Compass, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import clsx from 'clsx';
@@ -9,9 +7,11 @@ import { useEffect } from 'react';
 interface MobileDrawerProps {
     isOpen: boolean;
     onClose: () => void;
+    isDarkMode: boolean;
+    toggleDarkMode: () => void;
 }
 
-export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
+export function MobileDrawer({ isOpen, onClose, isDarkMode, toggleDarkMode }: MobileDrawerProps) {
     // Prevent body scroll when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -46,10 +46,17 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 <div className="h-14 flex items-center justify-between px-4 border-b border-reddit-border shrink-0">
                     <div className="relative h-8 w-24">
                         <Image
-                            src="/assets/logo-dark.jpg"
+                            src="/assets/logo-white-bg.jpg"
                             alt="Noleij Logo"
                             fill
-                            className="object-contain"
+                            className="object-contain dark:hidden"
+                            priority
+                        />
+                        <Image
+                            src="/assets/logo-white.jpg"
+                            alt="Noleij Logo"
+                            fill
+                            className="object-contain hidden dark:block"
                             priority
                         />
                     </div>
@@ -87,6 +94,25 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                             <Link href="/r/data" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-reddit-text">
                                 <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-[10px]">D</div> Data Science
                             </Link>
+                        </div>
+                    </div>
+
+                    {/* Settings & Theme */}
+                    <div className="pt-4 border-t border-reddit-border">
+                        <h3 className="text-xs font-bold text-reddit-meta uppercase px-3 mb-2">Settings</h3>
+                        <div className="space-y-1">
+                            <button
+                                onClick={toggleDarkMode}
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-reddit-text"
+                            >
+                                <div className="flex items-center gap-3">
+                                    {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                                    <span>Dark Mode</span>
+                                </div>
+                                <div className={`w-10 h-6 rounded-full transition-colors ${isDarkMode ? 'bg-reddit-blue' : 'bg-gray-300'} relative`}>
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                                </div>
+                            </button>
                         </div>
                     </div>
 
