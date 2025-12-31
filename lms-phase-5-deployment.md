@@ -134,9 +134,18 @@ docker compose -f docker-compose.prod.yml logs -f --tail=50
 ---
 
 ## 🔄 Rollback (If things break)
+**Emergency Checkpoint:** `db75e82` (Stable Phase 4 with RBAC)
+
 ```bash
+
+
+# 1. Check and Revert to the known stable commit
+git log --oneline -n 5
+
 cd ~/apps
-git checkout <previous_commit_hash>
+git checkout db75e82
+
+# 2. Rebuild containers
 cd ~/apps/infrastructure/docker
 docker compose -f docker-compose.prod.yml up -d --build
 ```

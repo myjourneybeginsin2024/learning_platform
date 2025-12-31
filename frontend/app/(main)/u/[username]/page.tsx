@@ -40,6 +40,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
 
                     <div className="space-y-4">
                         <PostCard
+                            id="mock-profile-1"
                             subreddit={`u/${username}`}
                             author={username}
                             time="1h ago"
@@ -50,6 +51,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
                         />
 
                         <PostCard
+                            id="mock-profile-2"
                             subreddit="r/webdev"
                             author={username}
                             time="5 hours ago"
