@@ -72,7 +72,7 @@ export function Navbar() {
                     >
                         <Menu className="w-6 h-6 text-reddit-text" />
                     </button>
-                    <Link href="/" className="flex items-center gap-2 relative h-10 w-32">
+                    <Link href="/" className="hidden md:flex items-center gap-2 relative h-10 w-32">
                         <Image
                             src="/assets/logo-dark.jpg"
                             alt="Noleij Logo"
