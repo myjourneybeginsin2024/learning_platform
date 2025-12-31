@@ -11,19 +11,16 @@ def create_users():
         users = [
             {
                 "email": "superadmin@example.com",
-                "full_name": "Super Admin Service",
                 "password": "superadminpassword",
                 "role": "super admin"
             },
             {
                 "email": "admin@example.com",
-                "full_name": "Admin Service",
                 "password": "adminpassword",
                 "role": "admin"
             },
             {
                 "email": "user@example.com",
-                "full_name": "User Service",
                 "password": "userpassword",
                 "role": "user"
             }
@@ -36,7 +33,6 @@ def create_users():
                 print(f"Creating {u['role']}: {u['email']}")
                 db_user = User(
                     email=u["email"],
-                    full_name=u["full_name"],
                     hashed_password=get_password_hash(u["password"]),
                     role=u["role"],
                     is_active=True

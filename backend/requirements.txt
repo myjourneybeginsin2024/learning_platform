@@ -8,7 +8,7 @@ pydantic>=2.5.0
 pydantic-settings
 redis
 passlib==1.7.4
-bcrypt==4.1.2
+bcrypt==4.0.1
 python-jose[cryptography]
 authlib
 httpx
