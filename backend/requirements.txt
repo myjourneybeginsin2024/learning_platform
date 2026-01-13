@@ -13,3 +13,8 @@ python-jose[cryptography]
 authlib
 httpx
 itsdangerous
+python-multipart
+dashscope
+pydantic
+pypdf
+openai

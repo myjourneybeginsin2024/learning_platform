@@ -19,10 +19,12 @@ app.add_middleware(
 )
 
 # Import routers AFTER app is created
-from app.api import auth, health, users, admin, feed
+from app.api import auth, health, users, admin, feed, organizations, superadmin
 
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/auth")
 app.include_router(users.router)
 app.include_router(feed.router)
 app.include_router(admin.router)
+app.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
+app.include_router(superadmin.router)

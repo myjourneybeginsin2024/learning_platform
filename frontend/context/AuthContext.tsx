@@ -4,7 +4,19 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { login as apiLogin, register as apiRegister, getCurrentUser } from "@/lib/auth";
 
-type User = { id: number; email: string; role: string; };
+export type Organization = {
+  id: number;
+  name: string;
+  slug: string;
+  role: 'admin' | 'member';
+};
+
+export type User = {
+  id: number;
+  email: string;
+  role: string;
+  organizations?: Organization[];
+};
 
 type AuthContextType = {
   user: User | null;
@@ -28,7 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       try {
         const fetchedUser = await getCurrentUser(token);
-        setUser({ id: fetchedUser.id, email: fetchedUser.email, role: fetchedUser.role });
+        setUser({
+          id: fetchedUser.id,
+          email: fetchedUser.email,
+          role: fetchedUser.role,
+          organizations: fetchedUser.organizations
+        });
         localStorage.setItem('user_role', fetchedUser.role);
         console.log("AuthContext: user initialized", fetchedUser);
       } catch (error) {
@@ -79,7 +96,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const fetchedUser = await getCurrentUser(token);
       console.log("AuthContext: user fetched", fetchedUser);
-      setUser({ id: fetchedUser.id, email: fetchedUser.email, role: fetchedUser.role });
+      console.log("AuthContext: Role from backend:", fetchedUser.role);
+      setUser({
+        id: fetchedUser.id,
+        email: fetchedUser.email,
+        role: fetchedUser.role,
+        organizations: fetchedUser.organizations
+      });
       // Ensure role is saved for ProtectedRoute
       localStorage.setItem('user_role', fetchedUser.role);
       return fetchedUser;

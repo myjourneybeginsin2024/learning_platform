@@ -16,6 +16,9 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://learning.noleij.ai}
+        NEXTAUTH_URL: ${NEXTAUTH_URL:-https://learning.noleij.ai}
     container_name: frontend_prod
     ports:
       - "3000:3000"

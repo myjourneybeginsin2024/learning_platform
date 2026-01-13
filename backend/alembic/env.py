@@ -39,6 +39,8 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+from app.core.config import settings
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -51,8 +53,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # Set the database URL from environment variable
-    database_url = os.environ.get('DATABASE_URL', 'postgresql://learning_user:MulaiBeraksi2024@postgres_prod:5432/learning_platform')
+    # Use settings from config.py which handles localhost patching
+    database_url = settings.DATABASE_URL
     config.set_main_option('sqlalchemy.url', database_url)
     
     url = config.get_main_option("sqlalchemy.url")
@@ -74,8 +76,8 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Set the database URL from environment variable
-    database_url = os.environ.get('DATABASE_URL', 'postgresql://learning_user:MulaiBeraksi2024@postgres_prod:5432/learning_platform')
+    # Use settings from config.py which handles localhost patching
+    database_url = settings.DATABASE_URL
     config.set_main_option('sqlalchemy.url', database_url)
     
     connectable = engine_from_config(

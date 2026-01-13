@@ -20,9 +20,10 @@ export default function AuthCallback() {
           const user = await loginWithToken(token);
 
           // Role-based redirect
-          if (user.role === 'super admin') router.push('/superadmin');
-          else if (user.role === 'admin') router.push('/admin');
-          else router.push('/user');
+          // Role-based redirect
+          if (user.role === 'super_admin' || user.role === 'super admin') router.push('/superadmin');
+          else if (user.role === 'admin' || user.organizations?.some((org: any) => org.role === 'admin')) router.push('/admin');
+          else router.push('/dashboard');
         } catch (e: any) {
           console.error(e);
           router.push(`/login?error=${encodeURIComponent(e.message || 'oauth_callback_error')}`);

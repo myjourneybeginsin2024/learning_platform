@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     MICROSOFT_CLIENT_ID: str = os.getenv("MICROSOFT_CLIENT_ID", "")
     MICROSOFT_CLIENT_SECRET: str = os.getenv("MICROSOFT_CLIENT_SECRET", "")
+    DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "")
     
     # Frontend URL
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://noleij.com")
@@ -32,10 +33,22 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set BACKEND_CORS_ORIGINS from CORS_ORIGINS
         self.BACKEND_CORS_ORIGINS = [origin.strip() for origin in self.CORS_ORIGINS]
+
+        # [AUTO-FIX] Force Localhost if Env Var is polluted with Docker hostname
+        # Also handles default value '@db' which fails on host
+        if any(x in self.DATABASE_URL for x in ["postgres_prod", "postgres_local", "@db:"]):
+            # Check if we are presumably running locally (not in docker)
+            # Simple heuristic: If OS is Windows, we likely want localhost
+            if os.name == 'nt': 
+                print(f"WARNING: Detected Docker hostname in '{self.DATABASE_URL}' on Windows. Forcing localhost.")
+                self.DATABASE_URL = self.DATABASE_URL.replace("postgres_prod", "localhost")\
+                                                     .replace("postgres_local", "localhost")\
+                                                     .replace("@db:", "@localhost:")
 
 settings = Settings()

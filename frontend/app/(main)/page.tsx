@@ -2,6 +2,7 @@
 
 import PostCard from '@/templates/default/components/feed/PostCard';
 import MediaViewer from '@/templates/default/components/feed/MediaViewer';
+import OrgTopicCarousel from '@/templates/default/components/feed/OrgTopicCarousel';
 import TrendingCarousel from '@/templates/default/components/feed/TrendingCarousel';
 import { RightSidebar } from '@/templates/default/components/layout/RightSidebar';
 import HomeInfoCard from '@/templates/default/components/feed/HomeInfoCard';
@@ -23,9 +24,13 @@ export default function FeedPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      if (user.role === 'super admin') router.replace('/superadmin');
-      else if (user.role === 'admin') router.replace('/admin');
-      else router.replace('/user');
+      // Role-based redirection from Home Page
+      if (user.role === 'super_admin' || user.role === 'super admin') {
+        router.replace('/superadmin');
+      } else if (user.role === 'admin' || user.organizations?.some(org => org.role === 'admin')) {
+        router.replace('/admin');
+      }
+      // Regular users stay on the feed page
     }
   }, [isLoading, isAuthenticated, user, router]);
 
@@ -37,9 +42,24 @@ export default function FeedPage() {
     setMediaViewerData(prev => ({ ...prev, isOpen: false }));
   };
 
+  const primaryOrg = user?.organizations?.[0];
+
+  useEffect(() => {
+    console.log("DEBUG: FeedPage Render", {
+      isAuthenticated,
+      hasUser: !!user,
+      orgs: user?.organizations,
+      primaryOrg
+    });
+  }, [isAuthenticated, user]);
+
   return (
     <div className="space-y-4 max-w-[1200px] mx-auto">
-      <TrendingCarousel />
+      {isAuthenticated && primaryOrg ? (
+        <OrgTopicCarousel orgId={primaryOrg.id} />
+      ) : (
+        <TrendingCarousel />
+      )}
 
       {/* Mobile-only Home/Create Section */}
       <div className="lg:hidden">

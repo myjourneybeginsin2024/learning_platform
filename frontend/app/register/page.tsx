@@ -18,7 +18,8 @@ export default function RegisterPage() {
         try {
             const normalizedEmail = email.toLowerCase().trim();
             await registerUser(normalizedEmail, password);
-            router.push("/user");
+            // Default new users to dashboard (or onboarding later)
+            router.push("/dashboard");
         } catch (err: any) {
             console.error("Registration failed", err);
             setError(err.message || "Registration failed");

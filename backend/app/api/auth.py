@@ -44,6 +44,28 @@ def login(request: AuthRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user or not verify_password(request.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    # Serialize organizations
+    orgs_data = {}
+    if user.organization_memberships:
+        for mem in user.organization_memberships:
+            if mem.organization:
+                orgs_data[mem.organization.id] = {
+                    "id": mem.organization.id,
+                    "name": mem.organization.name,
+                    "slug": mem.organization.slug,
+                    "role": "member"
+                }
+
+    if user.organization_admin_memberships:
+        for admin in user.organization_admin_memberships:
+            if admin.organization:
+                orgs_data[admin.organization.id] = {
+                    "id": admin.organization.id,
+                    "name": admin.organization.name,
+                    "slug": admin.organization.slug,
+                    "role": "admin"
+                }
+
     access_token = create_access_token(user_id=user.id, role=user.role)
     return {
         "access_token": access_token,
@@ -51,7 +73,8 @@ def login(request: AuthRequest, db: Session = Depends(get_db)):
         "user": {
             "id": user.id,
             "email": user.email,
-            "role": user.role
+            "role": user.role,
+            "organizations": list(orgs_data.values())
         }
     }
 @router.post("/register")
@@ -80,7 +103,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         "user": {
             "id": user.id,
             "email": user.email,
-            "role": user.role
+            "role": user.role,
+            "organizations": []
         }
     }
 # --- OAUTH ROUTES (MANUAL IMPLEMENTATION) ---

@@ -72,6 +72,17 @@ export function UserDrawer({ isOpen, onClose, isDarkMode, toggleDarkMode }: User
 
                 {/* Menu Items */}
                 <div className="flex-1 px-4 space-y-4 pb-8">
+                    {/* Super Admin Link */}
+                    {(user?.role === 'super_admin' || user?.role === 'super admin') && (
+                        <div className="space-y-4">
+                            <Link href="/superadmin" onClick={onClose} className="flex items-center gap-3 w-full text-left bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+                                <Shield size={20} className="text-red-600 dark:text-red-400" />
+                                <span className="font-bold text-red-600 dark:text-red-400">Super Admin Dashboard</span>
+                            </Link>
+                            <hr className="border-gray-100 dark:border-gray-800" />
+                        </div>
+                    )}
+
                     {/* Section 1 */}
                     <div className="space-y-4">
                         <button className="flex items-center gap-3 w-full text-left">

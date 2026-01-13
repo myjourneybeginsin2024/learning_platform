@@ -26,9 +26,13 @@ export default function LoginForm({ onRegisterClick, onForgotPassword, onSuccess
             const user = await loginUser(email, password);
 
             // Role-based redirection
-            if (user.role === 'super admin') {
+            console.log("LOGIN SUCCESS: User:", user);
+            console.log("Redirecting for role:", user.role);
+            console.log("Organization Check:", user.organizations?.some((org: any) => org.role === 'admin'));
+
+            if (user.role === 'super_admin' || user.role === 'super admin') {
                 router.push('/superadmin');
-            } else if (user.role === 'admin') {
+            } else if (user.role === 'admin' || user.organizations?.some((org: any) => org.role === 'admin')) {
                 router.push('/admin');
             } else {
                 router.push('/user');

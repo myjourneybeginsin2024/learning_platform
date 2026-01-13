@@ -155,6 +155,16 @@ export function Navbar() {
 
                                             {/* Menu Items */}
                                             <div className="py-2">
+                                                {(user?.role === 'super_admin' || user?.role === 'super admin') && (
+                                                    <Link
+                                                        href="/superadmin"
+                                                        onClick={() => setIsUserMenuOpen(false)}
+                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-red-600 dark:text-red-400 font-bold"
+                                                    >
+                                                        <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                                        <span>Super Admin Dashboard</span>
+                                                    </Link>
+                                                )}
                                                 <Link
                                                     href="/settings"
                                                     onClick={() => setIsUserMenuOpen(false)}

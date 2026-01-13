@@ -12,8 +12,12 @@ RUN npm install --legacy-peer-deps
 COPY frontend .
 
 # Set environment variables for build time
-ENV NEXT_PUBLIC_API_URL=https://noleij.com
-ENV NEXTAUTH_URL=https://noleij.com
+# Set environment variables for build time
+ARG NEXT_PUBLIC_API_URL=https://learning.noleij.ai
+ARG NEXTAUTH_URL=https://learning.noleij.ai
+
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
 
 # Build the application
 RUN npm run build

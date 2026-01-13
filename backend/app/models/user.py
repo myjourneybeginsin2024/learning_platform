@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 class User(Base):
@@ -12,6 +13,10 @@ class User(Base):
     google_id = Column(String, unique=True, index=True, nullable=True)  # For Google OAuth
     microsoft_id = Column(String, unique=True, index=True, nullable=True)  # For Microsoft OAuth
     avatar_url = Column(String, nullable=True)  # For user avatars from OAuth providers
+    full_name = Column(String, nullable=True)
+
+    organization_memberships = relationship("OrganizationMember", back_populates="user")
+    organization_admin_memberships = relationship("OrganizationAdmin", back_populates="user")
 
     def verify_password(self, password: str) -> bool:
         # Only verify password if hashed_password exists (for non-OAuth users)

@@ -10,9 +10,21 @@ export async function apiFetch(
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...((options.headers as Record<string, string>) || {}),
   };
+
+  // Check if body is FormData (works in all modern browsers and environments)
+  const isFormData = options.body && (
+    options.body instanceof FormData ||
+    options.body.constructor.name === 'FormData'
+  );
+
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  } else {
+    // Explicitly remove Content-Type to let browser handle boundary
+    delete headers["Content-Type"];
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -24,9 +36,21 @@ export async function apiFetch(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || "API error");
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        window.location.href = "/auth/login";
+      }
+    }
+    const text = await res.text();
+    try {
+      const err = JSON.parse(text);
+      throw new Error(err.detail || "API error");
+    } catch (e) {
+      throw new Error(text || `API error: ${res.status} ${res.statusText}`);
+    }
   }
 
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
 }

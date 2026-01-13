@@ -25,8 +25,14 @@ export async function getCurrentUser(token: string) {
     },
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Invalid token");
+    const text = await response.text();
+    try {
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.detail || "Invalid token");
+    } catch {
+      throw new Error(text || `Error: ${response.status}`);
+    }
   }
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
 }

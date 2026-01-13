@@ -11,9 +11,9 @@ function LoginContent() {
 
     useEffect(() => {
         if (user) {
-            if (user.role === "super admin") router.push("/superadmin");
-            else if (user.role === "admin") router.push("/admin");
-            else router.push("/user");
+            if (user.role === "super_admin" || user.role === "super admin") router.push("/superadmin");
+            else if (user.role === "admin" || user.organizations?.some((org: any) => org.role === "admin")) router.push("/admin");
+            else router.push("/dashboard");
         }
     }, [user, router]);
 
